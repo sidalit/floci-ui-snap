@@ -1,0 +1,124 @@
+name: floci-ui
+base: core26
+version: '0.7.0'
+title: Floci UI
+icon: snap/gui/floci-ui.png
+summary: Web console for the Floci local cloud emulators
+description: |
+  Floci UI is a browser console for the Floci local cloud emulators. Browse,
+  create, inspect and delete emulated AWS, Azure, GCP and OCI resources such
+  as buckets, tables, queues, functions and secrets. It emulates nothing
+  itself and shows only what the emulators return.
+
+  The service starts on http://127.0.0.1:4500 and expects the emulators on
+  their default local ports: Floci (AWS) on 4566, Floci-AZ on 4577,
+  Floci-GCP on 4588 and Floci-OCI on 4599. A cloud whose emulator is not
+  running is shown as not connected.
+
+  Change the listener or the emulator addresses with, for example:
+
+     sudo snap set floci-ui port=4600 aws-endpoint=http://127.0.0.1:4567
+
+  The console has no login and can change every emulated resource. Keep it
+  on localhost, or expose it only to a network you trust.
+license: MIT
+grade: stable
+confinement: strict
+website: https://floci.io
+source-code:
+  - https://github.com/floci-io/floci-ui
+  - https://github.com/sidalit/floci-ui-snap
+issues:
+  - https://github.com/floci-io/floci-ui/issues
+  - https://github.com/sidalit/floci-ui-snap/issues
+contact: https://github.com/sidalit/floci-ui-snap/issues
+
+platforms:
+  amd64:
+  arm64:
+
+apps:
+  floci-ui:
+    command: bin/floci-ui-launch
+    daemon: simple
+    restart-condition: on-failure
+    plugs:
+      - network
+      - network-bind
+
+parts:
+  # Upstream compiles the server with Bun, using the baseline build on x86-64.
+  # The compiled server embeds this runtime, so its license is kept.
+  bun:
+    plugin: nil
+    build-packages:
+      - curl
+      - unzip
+    override-build: |
+      version=1.4.3
+      case "$CRAFT_ARCH_BUILD_FOR" in
+        amd64) arch=x64-baseline sum=1fc2edac843102909e3a1be1d8d9802cc6071cf074e67e88231f4ffe0f8b397b ;;
+        arm64) arch=aarch64 sum=efa9813da5ed72423bf847f916e8d2c47c0d776add972354026a75e10da9aa21 ;;
+        *) echo "unsupported architecture $CRAFT_ARCH_BUILD_FOR" >&2; exit 1 ;;
+      esac
+      zip="bun-linux-$arch.zip"
+      curl -fsSLo "$zip" "https://github.com/oven-sh/bun/releases/download/bun-v$version/$zip"
+      echo "$sum  $zip" | sha256sum -c -
+      unzip -q -o "$zip"
+      install -Dm755 "bun-linux-$arch/bun" "$CRAFT_PART_INSTALL/bin/bun"
+      curl -fsSLo bun-LICENSE.md \
+        "https://raw.githubusercontent.com/oven-sh/bun/bun-v$version/LICENSE.md"
+      install -Dm644 bun-LICENSE.md "$CRAFT_PART_INSTALL/share/doc/bun/LICENSE.md"
+    prime:
+      - share/doc/bun/LICENSE.md
+
+  pnpm:
+    plugin: nil
+    build-snaps:
+      - node/24/stable
+    override-build: |
+      # Corepack selects the pnpm version from upstream's packageManager field.
+      npm install --global --prefix "$CRAFT_PART_INSTALL" corepack@0.36.0
+    prime:
+      - -*
+
+  floci-ui:
+    after: [bun, pnpm]
+    plugin: nil
+    source: https://github.com/floci-io/floci-ui.git
+    source-tag: $SNAPCRAFT_PROJECT_VERSION
+    source-depth: 1
+    build-snaps:
+      - node/24/stable
+    build-environment:
+      - COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
+    override-pull: |
+      craftctl default
+      # The server listens on every interface; let the launcher choose the address.
+      sed -i 's/^export default { port, fetch:/export default { port, hostname: process.env.FLOCI_UI_LISTEN_HOST ?? "", fetch:/' \
+        "$CRAFT_PART_SRC/packages/api/src/index.ts"
+      grep -q 'FLOCI_UI_LISTEN_HOST' "$CRAFT_PART_SRC/packages/api/src/index.ts"
+    override-build: |
+      export PATH="$CRAFT_STAGE/bin:$PATH"
+      app="$CRAFT_PART_INSTALL/lib/floci-ui"
+      mkdir -p "$app"
+      # Same steps as upstream's release workflow, with both lockfiles frozen.
+      pnpm install --frozen-lockfile
+      pnpm --filter @floci/frontend build
+      cp -r packages/frontend/dist "$app/public"
+      (
+        cd packages/api
+        bun install --frozen-lockfile
+        bun build --compile --minify src/index.ts --outfile "$app/server"
+      )
+
+      install -Dm644 LICENSE "$CRAFT_PART_INSTALL/share/doc/floci-ui/LICENSE"
+      # The server and the front end bundle their dependencies; keep the notices.
+      notices="$CRAFT_PART_INSTALL/share/doc/floci-ui/dependencies"
+      mkdir -p "$notices"
+      find node_modules -type f \( -iname 'license*' -o -iname 'licence*' \
+        -o -iname 'copying*' -o -iname 'notice*' \) -exec cp --parents -t "$notices" {} +
+
+  scripts:
+    plugin: dump
+    source: snap/local

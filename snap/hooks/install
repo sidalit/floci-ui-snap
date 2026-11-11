@@ -1,0 +1,7 @@
+#!/bin/sh
+set -eu
+
+snapctl set addr=127.0.0.1 port=4500 region=us-east-1 \
+  aws-endpoint=http://127.0.0.1:4566 azure-endpoint=http://127.0.0.1:4577 \
+  gcp-endpoint=http://127.0.0.1:4588 oci-endpoint=http://127.0.0.1:4599 \
+  allow-unsafe-network-exposure=false
