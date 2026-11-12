@@ -11,8 +11,8 @@ description: |
   itself and shows only what the emulators return.
 
   The service starts on http://127.0.0.1:4500 and expects the emulators on
-  their default local ports: Floci (AWS) on 4566, Floci-AZ on 4577,
-  Floci-GCP on 4588 and Floci-OCI on 4599. A cloud whose emulator is not
+  their default local ports: Floci (AWS) on 4566, Floci AZ on 4577,
+  Floci GCP on 4588 and Floci OCI on 4599. A cloud whose emulator is not
   running is shown as not connected.
 
   Change the listener or the emulator addresses with, for example:
