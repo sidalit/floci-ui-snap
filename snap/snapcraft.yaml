@@ -47,8 +47,6 @@ apps:
       - network-bind
 
 parts:
-  # Upstream compiles the server with Bun, using the baseline build on x86-64.
-  # The compiled server embeds this runtime, so its license is kept.
   bun:
     plugin: nil
     build-packages:
@@ -77,7 +75,6 @@ parts:
     build-snaps:
       - node/24/stable
     override-build: |
-      # Corepack selects the pnpm version from upstream's packageManager field.
       npm install --global --prefix "$CRAFT_PART_INSTALL" corepack@0.36.0
     prime:
       - -*
@@ -102,7 +99,6 @@ parts:
       export PATH="$CRAFT_STAGE/bin:$PATH"
       app="$CRAFT_PART_INSTALL/lib/floci-ui"
       mkdir -p "$app"
-      # Same steps as upstream's release workflow, with both lockfiles frozen.
       pnpm install --frozen-lockfile
       pnpm --filter @floci/frontend build
       cp -r packages/frontend/dist "$app/public"
@@ -113,7 +109,6 @@ parts:
       )
 
       install -Dm644 LICENSE "$CRAFT_PART_INSTALL/share/doc/floci-ui/LICENSE"
-      # The server and the front end bundle their dependencies; keep the notices.
       notices="$CRAFT_PART_INSTALL/share/doc/floci-ui/dependencies"
       mkdir -p "$notices"
       find node_modules -type f \( -iname 'license*' -o -iname 'licence*' \

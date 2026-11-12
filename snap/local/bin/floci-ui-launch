@@ -3,7 +3,6 @@ set -eu
 umask 077
 
 PORT="$(snapctl get port)"
-# Read by the listen address patched into the server at build time.
 FLOCI_UI_LISTEN_HOST="$(snapctl get addr)"
 AWS_REGION="$(snapctl get region)"
 # Without FLOCI_ENDPOINT the AWS SDK clients would call the real AWS endpoints.
@@ -14,7 +13,6 @@ FLOCI_OCI_ENDPOINT="$(snapctl get oci-endpoint)"
 export PORT FLOCI_UI_LISTEN_HOST AWS_REGION FLOCI_ENDPOINT FLOCI_AZURE_ENDPOINT
 export FLOCI_GCP_ENDPOINT FLOCI_OCI_ENDPOINT
 
-# Other upstream variables are read from this file; the options above win.
 export DOTENV_CONFIG_PATH="$SNAP_COMMON/config/floci-ui.env"
 export DOTENV_CONFIG_QUIET=true
 mkdir -p "$SNAP_COMMON/config"
