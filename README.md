@@ -26,50 +26,33 @@ Unofficial snap packaging for [Floci UI](https://github.com/floci-io/floci-ui), 
 
 ```bash
 sudo snap install floci-ui
-sudo snap install floci
 ```
 
-Open [http://127.0.0.1:4500](http://127.0.0.1:4500). The service starts automatically. The second command installs the AWS emulator, which the console finds on its default port.
-
-The console looks for each emulator on this machine: Floci (AWS) on port 4566, Floci-AZ on 4577, Floci-GCP on 4588 and Floci-OCI on 4599. A cloud whose emulator is not running shows as `Not connected`, and connects without a restart once the emulator is up.
-
-This is the same console that Floci starts as a Docker container at `/_floci/ui`. The snap runs it as a service and needs no Docker.
+Open [http://127.0.0.1:4500](http://127.0.0.1:4500). The service starts automatically and connects to each emulator once it runs, for example after `sudo snap install floci`.
 
 ## Configure
 
-```bash
-sudo snap set floci-ui port=4600 aws-endpoint=http://127.0.0.1:4567
-sudo snap logs floci-ui
-```
-
 | Option | Default | Purpose |
 |---|---|---|
-| `addr` | `127.0.0.1` | Listen address: an IP address or hostname |
-| `port` | `4500` | Console port, 1 to 65535 |
-| `aws-endpoint` | `http://127.0.0.1:4566` | URL of the Floci (AWS) emulator |
-| `azure-endpoint` | `http://127.0.0.1:4577` | URL of the Floci-AZ emulator |
-| `gcp-endpoint` | `http://127.0.0.1:4588` | URL of the Floci-GCP emulator |
-| `oci-endpoint` | `http://127.0.0.1:4599` | URL of the Floci-OCI emulator |
-| `region` | `us-east-1` | AWS region the console works in |
-| `allow-unsafe-network-exposure` | `false` | Required to bind outside loopback |
-
-Endpoints are `http://` or `https://` URLs without a trailing slash. Changes restart an enabled or running service. To reach the console from other devices at `http://<computer-ip>:4500` on a trusted development network:
+| `addr` | `127.0.0.1` | Listen address |
+| `port` | `4500` | Console port |
+| `aws-endpoint` | `http://127.0.0.1:4566` | Floci (AWS) emulator |
+| `azure-endpoint` | `http://127.0.0.1:4577` | Floci AZ emulator |
+| `gcp-endpoint` | `http://127.0.0.1:4588` | Floci GCP emulator |
+| `oci-endpoint` | `http://127.0.0.1:4599` | Floci OCI emulator |
+| `region` | `us-east-1` | AWS region |
+| `allow-unsafe-network-exposure` | `false` | Required to listen outside loopback |
 
 ```bash
-sudo snap set floci-ui addr=0.0.0.0 allow-unsafe-network-exposure=true
+sudo snap set floci-ui port=4600
 ```
 
-Other [upstream variables](https://github.com/floci-io/floci-ui#configuration), such as `FLOCI_AZURE_ACCOUNT_NAME`, `FLOCI_GCP_PROJECT` or `FLOCI_DEFAULT_ACCOUNT_ID`, go in `/var/snap/floci-ui/common/config/floci-ui.env` as `NAME=value` lines; run `sudo snap restart floci-ui` after editing. The options above take precedence over that file.
-
-The console keeps no data of its own. Resources live in the emulators, and preferences such as the theme and the selected account stay in your browser.
+Other [upstream variables](https://github.com/floci-io/floci-ui#configuration) go in `/var/snap/floci-ui/common/config/floci-ui.env`; restart the service after editing.
 
 ## Limitations
 
-- The console has no login. Anyone who can reach it can read and change every emulated resource, including secrets. `allow-unsafe-network-exposure` is a check made by this snap, not an upstream feature.
-- The console that Floci starts itself with Docker also uses port 4500. Use one of the two, or move this one with `port`.
-- HTTPS is not served, and the console must sit at the root of its own origin. Behind a reverse proxy, give it a hostname of its own instead of a path prefix.
-- The browser loads the interface fonts from Google Fonts and falls back to system fonts without internet access.
-- Remote access also requires the chosen port to be allowed by your firewall.
+- The console has no login: keep it on loopback or a trusted network.
+- Floci's own Docker console also uses port 4500; run one of the two, or change `port`.
 
 ## Build
 
